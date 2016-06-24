@@ -14,6 +14,6 @@
 %end
 </table>
 <br>
-<form action="/new">
+<form action="/new" method="get">
   <input type="submit" value="Add todo">
 </form>
