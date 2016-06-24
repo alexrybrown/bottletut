@@ -70,39 +70,33 @@ def edit_item(no):
 
         return template('edit_task', old = cur_data, no = no)
 
-@route('/item<item:re:[0-9]+>')
+@route('/item<item:re:[0-9]+>', method='GET')
 def show_item(item):
 
-        conn = sqlite3.connect('todo.db')
-        c = conn.cursor()
-        c.execute("SELECT task FROM todo WHERE id LIKE ?", (item))
-        result = c.fetchall()
-        c.close()
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute("SELECT task FROM todo WHERE id LIKE ?", (item))
+    result = c.fetchall()
+    c.close()
 
+
+    if request.GET.get('format','').strip() == 'json':
+        if not result:
+            return {'task':'This item number does not exist!'}
+        else:
+            return {'Task': result[0]}
+    elif request.GET.get('format','').strip() == '':
         if not result:
             return 'This item number does not exist!'
         else:
             return 'Task: %s' %result[0]
+    else:
+        return 'The format can either be "json" or blank'
 
 @route('/help')
 def help():
 
     static_file('help.html', root='.')
-
-@route('/json<json:re:[0-9]+>')
-def show_json(json):
-
-    conn = sqlite3.connect('todo.db')
-    c = conn.cursor()
-    c.execute("SELECT task FROM todo WHERE id LIKE ?", (json))
-    result = c.fetchall()
-    c.close()
-
-    if not result:
-        return {'task':'This item number does not exist!'}
-    else:
-        return {'Task': result[0]}
-
 
 @error(403)
 def mistake403(code):
