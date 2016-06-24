@@ -40,8 +40,8 @@ def new_item():
 def edit_item(no):
 
     if request.GET.get('save','').strip():
-        edit = request.GET.get('status','').strip()
-        status = request.GET.get('task','').strip()
+        edit = request.GET.get('task','').strip()
+        status = request.GET.get('status','').strip()
 
         if status == 'open':
             status = 1
