@@ -6,6 +6,7 @@
 <select name="status">
 <option>open</option>
 <option>closed</option>
+<option>delete</option>
 </select>
 <br/>
 <input type="submit" name="save" value="save">
