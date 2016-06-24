@@ -4,12 +4,16 @@
 %for row in rows:
   <tr>
   %for col in row:
-    <td>{{col}}</td>
+    %if isinstance(col, int):
+      <td><a href="/edit/{{col}}">{{col}}</a></td>
+    %else:
+      <td>{{col}}</td>
+    %end
   %end
   </tr>
 %end
 </table>
 <br>
 <form action="/new">
-    <input type="submit" value="Add todo">
-<form>
+  <input type="submit" value="Add todo">
+</form>
