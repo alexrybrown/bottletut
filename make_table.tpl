@@ -9,3 +9,7 @@
   </tr>
 %end
 </table>
+<br>
+<form action="/new">
+    <input type="submit" value="Add todo">
+<form>
