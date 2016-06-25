@@ -1,15 +1,26 @@
 import sqlite3
-from bottle import route, run, debug, template, request, static_file, error
+from bottle import route, run, debug, template, request, static_file, error, response, redirect
 
 # only needed when you run Bottle on mod_wsgi
 from bottle import default_app
+
+def verify_user(func):
+    def wrapper(*args, **kwargs):
+        if not request.get_cookie('username'):
+            return '<p style="color:red">You must have a username.</p>'
+        return func(*args, **kwargs)
+    return wrapper
 
 @route('/todo')
 def todo_list():
 
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
-    c.execute("SELECT id, task FROM todo WHERE status LIKE '1';")
+    # If the last_edited_by column has not been made yet
+    try:
+        c.execute("SELECT id, task, last_edited_by FROM todo WHERE status LIKE '1';")
+    except sqlite3.OperationalError:
+        c.execute("SELECT id, task FROM todo WHERE status LIKE '1';")
     result = c.fetchall()
     c.close()
 
@@ -17,15 +28,20 @@ def todo_list():
     return output
 
 @route('/new', method='GET')
+@verify_user
 def new_item():
 
     if request.GET.get('save','').strip():
-
+        username = request.get_cookie('username')
         new = request.GET.get('task', '').strip()
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-
-        c.execute("INSERT INTO todo (task,status) VALUES (?,?)", (new,1))
+        # If the column in the table has not been made yet
+        try:
+            c.execute("ALTER TABLE todo ADD last_edited_by character(20)")
+        except sqlite3.OperationalError:
+            pass
+        c.execute("INSERT INTO todo (task,status,last_edited_by) VALUES (?,?,?)", (new,1,username))
         new_id = c.lastrowid
 
         conn.commit()
@@ -37,8 +53,8 @@ def new_item():
         return template('new_task.tpl')
 
 @route('/edit/<no:int>', method='GET')
+@verify_user
 def edit_item(no):
-
     if request.GET.get('save','').strip():
         edit = request.GET.get('task','').strip()
         status = request.GET.get('status','').strip()
@@ -52,12 +68,19 @@ def edit_item(no):
 
             return '<p>The item number %s was successfully deleted</p>' %no
         else:
+            username = request.get_cookie('username')
             if status == 'open':
                 status = 1
             else:
                 status = 0
 
-            c.execute("UPDATE todo SET task = ?, status = ? WHERE id LIKE ?", (edit,status,no))
+            # If the column in the table has not been made yet
+            try:
+                c.execute("ALTER TABLE todo ADD last_edited_by character(20)")
+            except sqlite3.OperationalError:
+                pass
+            c.execute(
+                "UPDATE todo SET task = ?, status = ?, last_edited_by = ? WHERE id LIKE ?", (edit,status,username,no))
             conn.commit()
 
             return '<p>The item number %s was successfully updated</p>' %no
@@ -79,7 +102,6 @@ def show_item(item):
     result = c.fetchall()
     c.close()
 
-
     if request.GET.get('format','').strip() == 'json':
         if not result:
             return {'task':'This item number does not exist!'}
@@ -93,6 +115,18 @@ def show_item(item):
     else:
         return 'The format can either be "json" or blank'
 
+@route('/', method='GET')
+def login():
+    if request.GET.get('login', ''):
+        username = request.GET.get('username', '')
+        if not username:
+            return template('login', err='You must provide a username')
+        else:
+            response.set_cookie('username', username)
+            return redirect('/todo')
+    else:
+        return template('login', err='')
+
 @route('/help')
 def help():
 
@@ -105,7 +139,6 @@ def mistake403(code):
 @error(404)
 def mistake404(code):
     return 'Sorry, this page does not exist!'
-
 
 debug(True)
 run(reloader=True)
