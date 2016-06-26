@@ -4,12 +4,14 @@ from bottle import route, run, debug, template, request, static_file, error, res
 # only needed when you run Bottle on mod_wsgi
 from bottle import default_app
 
+
 def verify_user(func):
     def wrapper(*args, **kwargs):
         if not request.get_cookie('username'):
             return '<p style="color:red">You must have a username.</p>'
         return func(*args, **kwargs)
     return wrapper
+
 
 @route('/todo')
 def todo_list():
@@ -24,8 +26,9 @@ def todo_list():
     result = c.fetchall()
     c.close()
 
-    output = template('make_table', rows=result)
+    output = template('templates/make_table', rows=result)
     return output
+
 
 @route('/new', method='GET')
 @verify_user
@@ -50,7 +53,8 @@ def new_item():
         return '<p>The new task was inserted into the database, the ID is %s</p>' % new_id
 
     else:
-        return template('new_task.tpl')
+        return template('templates/new_task')
+
 
 @route('/edit/<no:int>', method='GET')
 @verify_user
@@ -91,7 +95,8 @@ def edit_item(no):
         c.execute("SELECT task FROM todo WHERE id LIKE ?", (str(no)))
         cur_data = c.fetchone()
 
-        return template('edit_task', old = cur_data, no = no)
+        return template('templates/edit_task', old=cur_data, no=no)
+
 
 @route('/item<item:re:[0-9]+>', method='GET')
 def show_item(item):
@@ -115,6 +120,7 @@ def show_item(item):
     else:
         return 'The format can either be "json" or blank'
 
+
 @route('/', method='GET')
 def login():
     if request.GET.get('login', ''):
@@ -125,16 +131,18 @@ def login():
             response.set_cookie('username', username)
             return redirect('/todo')
     else:
-        return template('login', err='')
+        return template('templates/login', err='')
+
 
 @route('/help')
 def help():
+    static_file('templates/help.html', root='.')
 
-    static_file('help.html', root='.')
 
 @error(403)
 def mistake403(code):
     return 'There is a mistake in your url!'
+
 
 @error(404)
 def mistake404(code):
