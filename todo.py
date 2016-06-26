@@ -121,17 +121,22 @@ def show_item(item):
         return 'The format can either be "json" or blank'
 
 
-@route('/', method='GET')
+@route('/login', method='GET')
 def login():
     if request.GET.get('login', ''):
         username = request.GET.get('username', '')
         if not username:
-            return template('login', err='You must provide a username')
+            return template('templates/login', err='You must provide a username')
         else:
             response.set_cookie('username', username)
             return redirect('/todo')
     else:
         return template('templates/login', err='')
+
+
+@route('/', method='GET')
+def home():
+    return template('templates/home')
 
 
 @route('/help')
