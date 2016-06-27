@@ -18,11 +18,7 @@ def todo_list():
 
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
-    # If the last_edited_by column has not been made yet
-    try:
-        c.execute("SELECT id, task, last_edited_by FROM todo WHERE status LIKE '1';")
-    except sqlite3.OperationalError:
-        c.execute("SELECT id, task FROM todo WHERE status LIKE '1';")
+    c.execute("SELECT id, task, last_edited_by FROM todo WHERE status LIKE '1';")
     result = c.fetchall()
     c.close()
 
@@ -39,18 +35,13 @@ def new_item():
         new = request.GET.get('task', '').strip()
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        # If the column in the table has not been made yet
-        try:
-            c.execute("ALTER TABLE todo ADD last_edited_by character(20)")
-        except sqlite3.OperationalError:
-            pass
         c.execute("INSERT INTO todo (task,status,last_edited_by) VALUES (?,?,?)", (new,1,username))
         new_id = c.lastrowid
 
         conn.commit()
         c.close()
 
-        return '<p>The new task was inserted into the database, the ID is %s</p>' % new_id
+        return '<p>The new task was inserted into the database, the ID is {}</p>'.format(new_id)
 
     else:
         return template('templates/new_task')
@@ -62,37 +53,26 @@ def edit_item(no):
     if request.GET.get('save','').strip():
         edit = request.GET.get('task','').strip()
         status = request.GET.get('status','').strip()
-
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-
         if status == 'delete':
             c.execute("DELETE FROM todo WHERE id LIKE ?", (no,))
             conn.commit()
-
-            return '<p>The item number %s was successfully deleted</p>' %no
+            return '<p>The item number {} was successfully deleted</p>'.format(no)
         else:
             username = request.get_cookie('username')
             if status == 'open':
                 status = 1
             else:
                 status = 0
-
-            # If the column in the table has not been made yet
-            try:
-                c.execute("ALTER TABLE todo ADD last_edited_by character(20)")
-            except sqlite3.OperationalError:
-                pass
             c.execute(
                 "UPDATE todo SET task = ?, status = ?, last_edited_by = ? WHERE id LIKE ?", (edit,status,username,no))
             conn.commit()
-
-            return '<p>The item number %s was successfully updated</p>' %no
-
+            return '<p>The item number {} was successfully updated</p>'.format(no)
     else:
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("SELECT task FROM todo WHERE id LIKE ?", (str(no)))
+        c.execute("SELECT task FROM todo WHERE id LIKE ?", (no,))
         cur_data = c.fetchone()
 
         return template('templates/edit_task', old=cur_data, no=no)
@@ -116,7 +96,7 @@ def show_item(item):
         if not result:
             return 'This item number does not exist!'
         else:
-            return 'Task: %s' %result[0]
+            return 'Task: {}'.format(result[0])
     else:
         return 'The format can either be "json" or blank'
 
